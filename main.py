@@ -1,0 +1,186 @@
+"""Run the Unity game account-reward automation.
+
+Open and focus the game yourself, then run ``python main.py`` on Windows.
+Press F8 to pause/resume and Escape to stop safely between operations.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+import sys
+import threading
+import time
+from typing import Callable
+
+import keyboard
+import pandas as pd
+
+import config
+from actions.change_account import click_change_account
+from actions.character import click_character
+from actions.letter import click_icon_letter, click_letter_first, click_letter_second
+from actions.login import click_login, click_ok, click_password, click_username
+from actions.logout import click_logout, click_yes
+from actions.menu import click_menu_first, click_menu_second
+from actions.messenger import click_messenger
+from actions.receive import click_receive_first, click_receive_second
+from actions.system import click_system
+from core.image import save_failure_screenshot
+from core.keyboard_input import type_text
+from core.logger import get_logger
+
+LOGGER = get_logger()
+
+
+class AutomationStopped(Exception):
+    """Raised when the user presses Escape."""
+
+
+class RunControls:
+    """Thread-safe pause and stop state driven by global hotkeys."""
+
+    def __init__(self) -> None:
+        self._paused = threading.Event()
+        self._stopped = threading.Event()
+
+    def toggle_pause(self) -> None:
+        if self._paused.is_set():
+            self._paused.clear()
+            LOGGER.info("Resumed.")
+        else:
+            self._paused.set()
+            LOGGER.info("Paused. Press F8 to resume.")
+
+    def stop(self) -> None:
+        self._stopped.set()
+        LOGGER.info("Exit requested.")
+
+    def checkpoint(self) -> None:
+        """Block while paused and stop promptly when requested."""
+        while self._paused.is_set():
+            if self._stopped.is_set():
+                raise AutomationStopped
+            time.sleep(0.1)
+        if self._stopped.is_set():
+            raise AutomationStopped
+
+    def wait(self, seconds: float) -> None:
+        """Wait without making pause/exit hotkeys unresponsive."""
+        deadline = time.monotonic() + seconds
+        while time.monotonic() < deadline:
+            self.checkpoint()
+            time.sleep(min(0.1, deadline - time.monotonic()))
+
+
+@dataclass(frozen=True)
+class Account:
+    """One row from account.csv."""
+
+    username: str
+    password: str
+
+
+def read_accounts() -> list[Account]:
+    """Load and validate username/password records from the configured CSV."""
+    frame = pd.read_csv(config.ACCOUNTS_FILE, dtype=str, encoding="utf-8-sig").fillna("")
+    required = {"username", "password"}
+    if not required.issubset(frame.columns):
+        raise ValueError("account.csv must contain exactly the columns: username,password")
+    accounts = [Account(row.username, row.password) for row in frame.itertuples(index=False)]
+    if not accounts:
+        raise ValueError("account.csv contains no accounts")
+    return accounts
+
+
+def perform(step: str, action: Callable[[], object], controls: RunControls) -> None:
+    """Perform a click action with a pause/exit checkpoint and clear failure name."""
+    controls.checkpoint()
+    try:
+        action()
+    except AutomationStopped:
+        raise
+    except Exception as exc:
+        raise RuntimeError(step) from exc
+
+
+def process_account(account: Account, number: int, controls: RunControls) -> None:
+    """Execute the requested reward collection workflow for one account."""
+    LOGGER.info("\n[Account %s]", number)
+
+    perform("Click Change Account", click_change_account, controls)
+    LOGGER.info("Click Change Account")
+    controls.wait(config.CHANGE_ACCOUNT_WAIT)
+
+    perform("Click Username", click_username, controls)
+    perform("Enter Username", lambda: type_text(account.username), controls)
+    LOGGER.info("Username entered")
+    perform("Click Password", click_password, controls)
+    perform("Enter Password", lambda: type_text(account.password), controls)
+    LOGGER.info("Password entered")
+    perform("Click OK", click_ok, controls)
+    controls.wait(config.LOGIN_FORM_WAIT)
+
+    perform("Click Login", click_login, controls)
+    LOGGER.info("Login clicked")
+    controls.wait(config.LOGIN_WAIT)
+    perform("Click Character", click_character, controls)
+    LOGGER.info("Character selected")
+    controls.wait(config.CHARACTER_WAIT)
+    perform("Open Menu", click_menu_first, controls)
+    LOGGER.info("Menu opened")
+    controls.wait(config.MENU_WAIT)
+    perform("Open Messenger", click_messenger, controls)
+    LOGGER.info("Messenger opened")
+    controls.wait(config.MESSENGER_WAIT)
+    perform("Select System", click_system, controls)
+    LOGGER.info("System selected")
+    controls.wait(config.SYSTEM_WAIT)
+    perform("Click Icon Letter", click_icon_letter, controls)
+    LOGGER.info("Icon letter opened")
+    controls.wait(config.ICON_LETTER_WAIT)
+    perform("Click Letter 1", click_letter_first, controls)
+    controls.wait(config.LETTER_WAIT)
+    perform("Receive Reward 1", click_receive_first, controls)
+    LOGGER.info("Receive reward 1")
+    controls.wait(config.RECEIVE_WAIT)
+    perform("Click Letter 2", click_letter_second, controls)
+    controls.wait(config.LETTER_WAIT)
+    perform("Receive Reward 2", click_receive_second, controls)
+    LOGGER.info("Receive reward 2")
+    controls.wait(config.RECEIVE_WAIT)
+    perform("Open Menu (logout)", click_menu_second, controls)
+    controls.wait(config.MENU_WAIT)
+    perform("Click Logout", click_logout, controls)
+    perform("Confirm Logout", click_yes, controls)
+    controls.wait(config.LOGOUT_WAIT)
+    LOGGER.info("Logout success")
+
+
+def main() -> int:
+    """Install controls, process accounts, and report failures with screenshots."""
+    controls = RunControls()
+    keyboard.add_hotkey("f8", controls.toggle_pause)
+    keyboard.add_hotkey("esc", controls.stop)
+    LOGGER.info("F8 pauses/resumes; Escape exits. Keep the Unity game open and visible.")
+    try:
+        for index, account in enumerate(read_accounts(), start=1):
+            process_account(account, index, controls)
+    except AutomationStopped:
+        LOGGER.info("Automation stopped by user.")
+        return 0
+    except Exception as exc:
+        step = str(exc)
+        screenshot = save_failure_screenshot(step)
+        LOGGER.error("FAILED: %s. Screenshot saved to %s", step, screenshot)
+        return 1
+    finally:
+        keyboard.unhook_all_hotkeys()
+        if config.DEBUG:
+            import cv2
+            cv2.destroyAllWindows()
+    LOGGER.info("All accounts completed.")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

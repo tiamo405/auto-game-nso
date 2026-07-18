@@ -1,0 +1,11 @@
+opencv-python
+numpy
+mss
+pydirectinput
+pyperclip
+pandas
+keyboard
+# pywin32 is distributed only for Windows.  The automation itself must run on
+# Windows because it controls a Windows Unity game, but this marker keeps
+# dependency installation possible on other systems for code inspection.
+pywin32; platform_system == "Windows"
