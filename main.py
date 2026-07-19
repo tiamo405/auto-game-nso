@@ -14,11 +14,13 @@ from typing import Callable
 
 import keyboard
 import pandas as pd
+import win32api
 
 import config
 from actions.change_account import click_change_account
 from actions.character import click_character
 from actions.letter import click_icon_letter, click_letter_first, click_letter_second
+from actions.letter_v2 import click_icon_letter_v2
 from actions.login import click_login, click_ok, click_password, click_username
 from actions.logout import click_logout, click_yes
 from actions.menu import click_menu_first, click_menu_second
@@ -93,17 +95,18 @@ def read_accounts() -> list[Account]:
 
 
 def perform(step: str, action: Callable[[], object], controls: RunControls) -> None:
-    """Perform a click action with a pause/exit checkpoint and clear failure name."""
+    """Perform one action and retain its underlying error in the console log."""
     controls.checkpoint()
     try:
         action()
     except AutomationStopped:
         raise
     except Exception as exc:
+        LOGGER.exception("Underlying error during step: %s", step)
         raise RuntimeError(step) from exc
 
 
-def process_account(account: Account, number: int, controls: RunControls) -> None:
+def process_account(account: Account, number: int, controls: RunControls, version = "v2") -> None:
     """Execute the requested reward collection workflow for one account."""
     LOGGER.info("\n[Account %s]", number)
 
@@ -112,42 +115,84 @@ def process_account(account: Account, number: int, controls: RunControls) -> Non
     controls.wait(config.CHANGE_ACCOUNT_WAIT)
 
     perform("Click Username", click_username, controls)
+    controls.wait(config.INPUT_FIELD_FOCUS_WAIT)
+
     perform("Enter Username", lambda: type_text(account.username), controls)
     LOGGER.info("Username entered")
+    controls.wait(config.TEXT_INPUT_WAIT)
+
     perform("Click Password", click_password, controls)
+    controls.wait(config.INPUT_FIELD_FOCUS_WAIT)
+
     perform("Enter Password", lambda: type_text(account.password), controls)
     LOGGER.info("Password entered")
+    controls.wait(config.TEXT_INPUT_WAIT)
+
     perform("Click OK", click_ok, controls)
     controls.wait(config.LOGIN_FORM_WAIT)
 
     perform("Click Login", click_login, controls)
     LOGGER.info("Login clicked")
     controls.wait(config.LOGIN_WAIT)
+
     perform("Click Character", click_character, controls)
     LOGGER.info("Character selected")
     controls.wait(config.CHARACTER_WAIT)
-    perform("Open Menu", click_menu_first, controls)
-    LOGGER.info("Menu opened")
+    if version == "v1":
+        # mở menu
+        perform("Open Menu", click_menu_first, controls)
+        LOGGER.info("Menu opened")
+        controls.wait(config.MENU_WAIT)
+
+        # mở messenger
+        perform("Open Messenger", click_messenger, controls)
+        LOGGER.info("Messenger opened")
+        controls.wait(config.MESSENGER_WAIT)
+
+        # mở system
+        perform("Select System", click_system, controls)
+        LOGGER.info("System selected")
+        controls.wait(config.SYSTEM_WAIT)
+
+        # ấn icon letter
+        perform("Click Icon Letter", click_icon_letter, controls)
+        LOGGER.info("Icon letter opened")
+        controls.wait(config.ICON_LETTER_WAIT)
+        
+        # ấn letter 1 và nhận thưởng
+        perform("Click Letter 1", click_letter_first, controls)
+        controls.wait(config.LETTER_WAIT)
+        perform("Receive Reward 1", click_receive_first, controls)
+        LOGGER.info("Receive reward 1")
+        controls.wait(config.RECEIVE_WAIT)
+
+        # ấn letter 2 và nhận thưởng
+        perform("Click Letter 2", click_letter_second, controls)
+        controls.wait(config.LETTER_WAIT)
+        perform("Receive Reward 2", click_receive_second, controls)
+        LOGGER.info("Receive reward 2")
+        controls.wait(config.RECEIVE_WAIT)
+    else :
+        # ấn icon letter v2
+        perform("Click Icon Letter v2", click_icon_letter_v2, controls)
+        LOGGER.info("Icon letter opened")
+        controls.wait(config.ICON_LETTER_WAIT)
+
+        # ấn letter 1 -> ấn nhận -> ấn nhận là nhận letter 2 luôn
+        perform("Click Letter 1", click_letter_first, controls)
+        controls.wait(config.LETTER_WAIT)
+        perform("Receive Reward 1", click_receive_first, controls)
+        LOGGER.info("Receive reward 1")
+        controls.wait(config.RECEIVE_WAIT)
+        perform("Receive Reward 2", click_receive_second, controls)
+        LOGGER.info("Receive reward 2")
+        controls.wait(config.RECEIVE_WAIT)
+    
+    
+    # ấn logout
+    # ấn nút memu để thoát giao diện letter
+    perform("Open Menu (logout)", click_menu_first, controls)
     controls.wait(config.MENU_WAIT)
-    perform("Open Messenger", click_messenger, controls)
-    LOGGER.info("Messenger opened")
-    controls.wait(config.MESSENGER_WAIT)
-    perform("Select System", click_system, controls)
-    LOGGER.info("System selected")
-    controls.wait(config.SYSTEM_WAIT)
-    perform("Click Icon Letter", click_icon_letter, controls)
-    LOGGER.info("Icon letter opened")
-    controls.wait(config.ICON_LETTER_WAIT)
-    perform("Click Letter 1", click_letter_first, controls)
-    controls.wait(config.LETTER_WAIT)
-    perform("Receive Reward 1", click_receive_first, controls)
-    LOGGER.info("Receive reward 1")
-    controls.wait(config.RECEIVE_WAIT)
-    perform("Click Letter 2", click_letter_second, controls)
-    controls.wait(config.LETTER_WAIT)
-    perform("Receive Reward 2", click_receive_second, controls)
-    LOGGER.info("Receive reward 2")
-    controls.wait(config.RECEIVE_WAIT)
     perform("Open Menu (logout)", click_menu_second, controls)
     controls.wait(config.MENU_WAIT)
     perform("Click Logout", click_logout, controls)
@@ -160,11 +205,16 @@ def main() -> int:
     """Install controls, process accounts, and report failures with screenshots."""
     controls = RunControls()
     keyboard.add_hotkey("f8", controls.toggle_pause)
+    keyboard.add_hotkey("f7", controls.log_cursor_position)
     keyboard.add_hotkey("esc", controls.stop)
-    LOGGER.info("F8 pauses/resumes; Escape exits. Keep the Unity game open and visible.")
+    LOGGER.info(
+        "F7 prints cursor coordinates; F8 pauses/resumes; Escape exits. "
+        "Keep the Unity game open and visible."
+    )
+    version = "v2"
     try:
         for index, account in enumerate(read_accounts(), start=1):
-            process_account(account, index, controls)
+            process_account(account, index, controls, version)
     except AutomationStopped:
         LOGGER.info("Automation stopped by user.")
         return 0

@@ -1,6 +1,8 @@
 """System message action."""
 from actions._common import Point, click_template
-FORCE_SYSTEM: Point | None = None
+import config
+
+
 def click_system() -> Point:
     """Return system tab click coordinate."""
-    return click_template("system.png", FORCE_SYSTEM)
+    return click_template("system.png", config.FORCE_SYSTEM)
