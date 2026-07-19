@@ -73,6 +73,10 @@ Mỗi lần bấm chuột trái, tọa độ màn hình sẽ được in ra term
   có thể đổi thành `TEXT_INPUT_METHOD = "clipboard"`.
 - Tốc độ gõ được chỉnh bằng `TEXT_TYPING_INTERVAL_SECONDS` (mặc định `0.01`
   giây/ký tự). Nếu game bị thiếu ký tự, tăng lên `0.03` hoặc `0.05`.
+- Mặc định `TEXT_CLEAR_METHOD = "right_backspace"`: tool gửi phím `Right` đủ
+  `MAX_LEN_USER` lần để đưa con trỏ về cuối, sau đó gửi `Backspace` cùng số lần
+  để xóa tài khoản cũ. Cách này không dùng `Ctrl+A` hay `Home`. Tăng
+  `MAX_LEN_USER` nếu username/password có thể dài hơn 64 ký tự.
 - Toàn bộ tọa độ click nằm trong `config.py`. Đặt giá trị, ví dụ
   `FORCE_LOGIN = (x, y)`, để click tọa độ cố định thay vì tìm ảnh; đặt `None`
   để chỉ thao tác đó quay lại tìm ảnh bằng OpenCV.

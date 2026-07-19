@@ -18,6 +18,10 @@ DEBUG_WINDOW_NAME = "Unity Game Automation Debug"
 # Time to let the UI react after a DirectInput click.
 CLICK_PAUSE_SECONDS = 0.10
 
+# Hold duration used only for Logout and its Yes confirmation. Some Unity UI
+# controls register this more reliably than an instant click.
+LOGOUT_CLICK_HOLD_SECONDS = 1
+
 # Unity UI fields can need a moment to receive focus before Ctrl+V is sent.
 INPUT_FIELD_FOCUS_WAIT = 0.75
 TEXT_INPUT_WAIT = 0.50
@@ -27,6 +31,15 @@ TEXT_INPUT_WAIT = 0.50
 # reliably in your version of the game.
 TEXT_INPUT_METHOD = "direct"
 TEXT_TYPING_INTERVAL_SECONDS = 0.01
+
+# Some Unity fields reject Ctrl+A and Home.  "right_backspace" moves the text
+# cursor right to the end, then deletes old text without Ctrl+A or Home.
+# This maximum applies to both username and password fields.
+TEXT_CLEAR_METHOD = "right_backspace"
+MAX_LEN_USER = 16
+
+# max letter
+MAX_LETTER = 10
 
 # Fixed click coordinates.  Set a value to (x, y) to click that position, or
 # set it to None to use OpenCV template matching for only that action.
@@ -46,18 +59,18 @@ FORCE_LETTER_FIRST = (577, 123)
 FORCE_LETTER_SECOND = None
 FORCE_RECEIVE_FIRST = (566, 595)
 FORCE_RECEIVE_SECOND = (566, 595)
-FORCE_LOGOUT = (984, 616)
-FORCE_YES = (631, 630)
+FORCE_LOGOUT = (1009, 600)
+FORCE_YES = (605, 630)
 
 # Workflow delays. Adjust these if the game or connection needs more time.
 CHANGE_ACCOUNT_WAIT = 5
 LOGIN_FORM_WAIT = 2
 LOGIN_WAIT = 10
 CHARACTER_WAIT = 5
-MENU_WAIT = 1
+MENU_WAIT = 2
 MESSENGER_WAIT = 2
 SYSTEM_WAIT = 2
 ICON_LETTER_WAIT = 5
 LETTER_WAIT = 2
-RECEIVE_WAIT = 2
+RECEIVE_WAIT = 1
 LOGOUT_WAIT = 15

@@ -4,8 +4,18 @@ import config
 
 
 def click_logout() -> Point:
-    """Return logout click coordinate."""
-    return click_template("logout.png", config.FORCE_LOGOUT)
+    """Hold-click logout and return its coordinate."""
+    return click_template(
+        "logout.png",
+        config.FORCE_LOGOUT,
+        hold_seconds=config.LOGOUT_CLICK_HOLD_SECONDS,
+    )
+
+
 def click_yes() -> Point:
-    """Return logout-confirmation click coordinate."""
-    return click_template("yes.png", config.FORCE_YES)
+    """Hold-click logout confirmation and return its coordinate."""
+    return click_template(
+        "yes.png",
+        config.FORCE_YES,
+        hold_seconds=config.LOGOUT_CLICK_HOLD_SECONDS,
+    )

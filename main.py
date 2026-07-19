@@ -14,7 +14,6 @@ from typing import Callable
 
 import keyboard
 import pandas as pd
-import win32api
 
 import config
 from actions.change_account import click_change_account
@@ -108,7 +107,7 @@ def perform(step: str, action: Callable[[], object], controls: RunControls) -> N
 
 def process_account(account: Account, number: int, controls: RunControls, version = "v2") -> None:
     """Execute the requested reward collection workflow for one account."""
-    LOGGER.info("\n[Account %s]", number)
+    LOGGER.info("\n[Account %s username : {account.username}]", number)
 
     perform("Click Change Account", click_change_account, controls)
     LOGGER.info("Click Change Account")
@@ -181,23 +180,27 @@ def process_account(account: Account, number: int, controls: RunControls, versio
         # ấn letter 1 -> ấn nhận -> ấn nhận là nhận letter 2 luôn
         perform("Click Letter 1", click_letter_first, controls)
         controls.wait(config.LETTER_WAIT)
-        perform("Receive Reward 1", click_receive_first, controls)
-        LOGGER.info("Receive reward 1")
-        controls.wait(config.RECEIVE_WAIT)
-        perform("Receive Reward 2", click_receive_second, controls)
-        LOGGER.info("Receive reward 2")
-        controls.wait(config.RECEIVE_WAIT)
-    
+        for i in range(1, config.MAX_LETTER+1):
+            # ấn nhận thưởng thu i
+            perform(f"Receive Reward {i}", click_receive_first, controls)
+            LOGGER.info(f"Receive reward {i}")
+            controls.wait(config.RECEIVE_WAIT)
+        
     
     # ấn logout
-    # ấn nút memu để thoát giao diện letter
-    perform("Open Menu (logout)", click_menu_first, controls)
-    controls.wait(config.MENU_WAIT)
+    controls.wait(2)
+    LOGGER.info("Logout process - press menu 2 view screen menu")
     perform("Open Menu (logout)", click_menu_second, controls)
     controls.wait(config.MENU_WAIT)
+    
+    LOGGER.info("chon nut logout")
     perform("Click Logout", click_logout, controls)
+    controls.wait(2)
+
+    LOGGER.info("Logout process - confirm logout")
     perform("Confirm Logout", click_yes, controls)
     controls.wait(config.LOGOUT_WAIT)
+    
     LOGGER.info("Logout success")
 
 
@@ -205,11 +208,9 @@ def main() -> int:
     """Install controls, process accounts, and report failures with screenshots."""
     controls = RunControls()
     keyboard.add_hotkey("f8", controls.toggle_pause)
-    keyboard.add_hotkey("f7", controls.log_cursor_position)
     keyboard.add_hotkey("esc", controls.stop)
     LOGGER.info(
-        "F7 prints cursor coordinates; F8 pauses/resumes; Escape exits. "
-        "Keep the Unity game open and visible."
+        "F8 pauses/resumes; Escape exits. Keep the Unity game open and visible."
     )
     version = "v2"
     try:
