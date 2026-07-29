@@ -26,6 +26,13 @@ from actions.menu import click_menu_first, click_menu_second
 from actions.messenger import click_messenger
 from actions.receive import click_receive_first, click_receive_second
 from actions.system import click_system
+from actions.phucloi import (
+    click_icon_phucloi,
+    click_goiqua,
+    click_tanthu,
+    click_nhanthuong_tanthu,
+    click_dong,
+)
 from core.image import save_failure_screenshot
 from core.keyboard_input import type_text
 from core.logger import get_logger
@@ -105,7 +112,7 @@ def perform(step: str, action: Callable[[], object], controls: RunControls) -> N
         raise RuntimeError(step) from exc
 
 
-def process_account(account: Account, number: int, controls: RunControls, version = "v2") -> None:
+def process_account(account: Account, number: int, controls: RunControls, version = "v2", func=None) -> None:
     """Execute the requested reward collection workflow for one account."""
     LOGGER.info("\n[Account %s username %s : ]", number, account.username)
 
@@ -137,7 +144,7 @@ def process_account(account: Account, number: int, controls: RunControls, versio
     perform("Click Character", click_character, controls)
     LOGGER.info("Character selected")
     controls.wait(config.CHARACTER_WAIT)
-    if version == "v1":
+    if version == "v1" and "get_letter" in func:
         # mở menu
         perform("Open Menu", click_menu_first, controls)
         LOGGER.info("Menu opened")
@@ -171,7 +178,7 @@ def process_account(account: Account, number: int, controls: RunControls, versio
         perform("Receive Reward 2", click_receive_second, controls)
         LOGGER.info("Receive reward 2")
         controls.wait(config.RECEIVE_WAIT)
-    else :
+    elif version == "v2" and "get_letter" in func:
         # ấn icon letter v2
         perform("Click Icon Letter v2", click_icon_letter_v2, controls)
         LOGGER.info("Icon letter opened")
@@ -185,10 +192,26 @@ def process_account(account: Account, number: int, controls: RunControls, versio
             perform(f"Receive Reward {i}", click_receive_first, controls)
             LOGGER.info(f"Receive reward {i}")
             controls.wait(config.RECEIVE_WAIT)
-        
+    controls.wait(2)
+
+    if "phucloi" in func:
+        # ấn icon phucloi
+        perform("Click Icon Phuc Loi", click_icon_phucloi, controls)
+        controls.wait(1)
+        # ấn gói quà
+        perform("Click Goi Qua", click_goiqua, controls)
+        controls.wait(1)
+        # ấn Tân thủ
+        perform("Click Tan Thu", click_tanthu, controls)
+        controls.wait(1)
+        # ấn nhận thưởng
+        perform("Receive Reward", click_nhanthuong_tanthu, controls)
+        controls.wait(1)
+        # ấn đóng
+        perform("Click Dong", click_dong, controls)
+        controls.wait(2)
     
     # ấn logout
-    controls.wait(2)
     LOGGER.info("Logout process - press menu 1 view screen menu")
     perform("Open Menu (logout)", click_menu_first, controls)
     controls.wait(config.MENU_WAIT)
@@ -213,9 +236,10 @@ def main() -> int:
         "F8 pauses/resumes; Escape exits. Keep the Unity game open and visible."
     )
     version = "v2"
+    func = ["get_letter", "phucloi"]
     try:
         for index, account in enumerate(read_accounts(), start=1):
-            process_account(account, index, controls, version)
+            process_account(account, index, controls, version, func)
     except AutomationStopped:
         LOGGER.info("Automation stopped by user.")
         return 0
