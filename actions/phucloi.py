@@ -27,3 +27,7 @@ def click_nhanthuong_tanthu() -> Point:
 def click_dong() -> Point:
     """Return close (đóng) button click coordinate."""
     return click_template("dong.png", config.FORCE_DONG)
+
+def click_ok_nhanquatanthu() -> Point:
+    """Return OK button click coordinate after receiving newbie gift."""
+    return click_template("ok-nhanquatanthu.png", config.FORCE_OK_NHANQUATANTHU)

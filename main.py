@@ -32,6 +32,7 @@ from actions.phucloi import (
     click_tanthu,
     click_nhanthuong_tanthu,
     click_dong,
+    click_ok_nhanquatanthu
 )
 from core.image import save_failure_screenshot
 from core.keyboard_input import type_text
@@ -206,6 +207,9 @@ def process_account(account: Account, number: int, controls: RunControls, versio
         controls.wait(1)
         # ấn nhận thưởng
         perform("Receive Reward", click_nhanthuong_tanthu, controls)
+        controls.wait(1)
+        # ấn ok
+        perform("Click OK", click_ok_nhanquatanthu, controls)
         controls.wait(1)
         # ấn đóng
         perform("Click Dong", click_dong, controls)

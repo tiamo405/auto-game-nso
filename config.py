@@ -66,6 +66,7 @@ FORCE_ICON_PHUCLOI = None
 FORCE_GOIQUA = None
 FORCE_TAN_THU = None
 FORCE_NHANTHUONG_TANTHU = None
+FORCE_OK_NHANQUATANTHU = None
 FORCE_DONG = None
 
 # Workflow delays. Adjust these if the game or connection needs more time.
