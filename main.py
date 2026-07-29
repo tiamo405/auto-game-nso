@@ -107,7 +107,7 @@ def perform(step: str, action: Callable[[], object], controls: RunControls) -> N
 
 def process_account(account: Account, number: int, controls: RunControls, version = "v2") -> None:
     """Execute the requested reward collection workflow for one account."""
-    LOGGER.info("\n[Account %s username : {account.username}]", number)
+    LOGGER.info("\n[Account %s username %s : ]", number, account.username)
 
     perform("Click Change Account", click_change_account, controls)
     LOGGER.info("Click Change Account")
@@ -189,8 +189,8 @@ def process_account(account: Account, number: int, controls: RunControls, versio
     
     # ấn logout
     controls.wait(2)
-    LOGGER.info("Logout process - press menu 2 view screen menu")
-    perform("Open Menu (logout)", click_menu_second, controls)
+    LOGGER.info("Logout process - press menu 1 view screen menu")
+    perform("Open Menu (logout)", click_menu_first, controls)
     controls.wait(config.MENU_WAIT)
     
     LOGGER.info("chon nut logout")
