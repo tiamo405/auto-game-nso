@@ -128,12 +128,12 @@ def process_account(account: Account, number: int, controls: RunControls, versio
     LOGGER.info("Username entered")
     controls.wait(config.TEXT_INPUT_WAIT)
 
-    perform("Click Password", click_password, controls)
-    controls.wait(config.INPUT_FIELD_FOCUS_WAIT)
+    # perform("Click Password", click_password, controls)
+    # controls.wait(config.INPUT_FIELD_FOCUS_WAIT)
 
-    perform("Enter Password", lambda: type_text(account.password), controls)
-    LOGGER.info("Password entered")
-    controls.wait(config.TEXT_INPUT_WAIT)
+    # perform("Enter Password", lambda: type_text(account.password), controls)
+    # LOGGER.info("Password entered")
+    # controls.wait(config.TEXT_INPUT_WAIT)
 
     perform("Click OK", click_ok, controls)
     controls.wait(config.LOGIN_FORM_WAIT)
@@ -197,23 +197,29 @@ def process_account(account: Account, number: int, controls: RunControls, versio
 
     if "phucloi" in func:
         # ấn icon phucloi
+        LOGGER.info("Phuc loi process - press icon phuc loi")
         perform("Click Icon Phuc Loi", click_icon_phucloi, controls)
         controls.wait(1)
         # ấn gói quà
+        LOGGER.info("Phuc loi process - press Goi Qua")
         perform("Click Goi Qua", click_goiqua, controls)
         controls.wait(1)
         # ấn Tân thủ
+        LOGGER.info("Phuc loi process - press Tan Thu")
         perform("Click Tan Thu", click_tanthu, controls)
         controls.wait(1)
         # ấn nhận thưởng
+        LOGGER.info("Phuc loi process - press Nhan Thuong")
         perform("Receive Reward", click_nhanthuong_tanthu, controls)
         controls.wait(1)
         # ấn ok
+        LOGGER.info("Phuc loi process - press OK")
         perform("Click OK", click_ok_nhanquatanthu, controls)
         controls.wait(1)
         # ấn đóng
+        LOGGER.info("Phuc loi process - press Dong")
         perform("Click Dong", click_dong, controls)
-        controls.wait(2)
+        controls.wait(1)
     
     # ấn logout
     LOGGER.info("Logout process - press menu 1 view screen menu")
@@ -240,7 +246,7 @@ def main() -> int:
         "F8 pauses/resumes; Escape exits. Keep the Unity game open and visible."
     )
     version = "v2"
-    func = ["get_letter", "phucloi"]
+    func = ["phucloi"]
     try:
         for index, account in enumerate(read_accounts(), start=1):
             process_account(account, index, controls, version, func)
